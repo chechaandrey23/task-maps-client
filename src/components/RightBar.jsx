@@ -18,18 +18,17 @@ export default function RightBar() {
 	const [viewMarker, setViewMarker] = useState(null);
 
 	return (<>
-		<Scrollbars style={{width, height}}>
+		<Scrollbars style={{width, height: height - 50}}>
 			{units.length === 0?<div><h2>Not Found</h2></div>:null}
 			{unitsLoading?<div><h2>Loading...</h2></div>:null}
 			{units.map((entry) => {
-				return <Card style={{width: width}}>
+				return <Card style={{width: width, cursor: 'pointer'}} onClick={() => {
+					setViewMarker(entry);
+				}}>
 					<Card.Img variant="top" src={'/images/'+entry.image} />
 					<Card.Body>
 						<Card.Title>{entry.title}</Card.Title>
 						<Card.Text>{entry.title}</Card.Text>
-						<Button variant="primary" onClick={() => {
-							setViewMarker(entry);
-						}}>View</Button>
 					</Card.Body>
 				</Card>
 			})}

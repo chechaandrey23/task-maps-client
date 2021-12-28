@@ -1,21 +1,15 @@
 import React, {useState, useCallback, useEffect, useRef, useLayoutEffect} from 'react'
 import {GoogleMap, LoadScript, Marker} from '@react-google-maps/api';
 import {useSelector, useDispatch} from 'react-redux';
-import {useForm} from 'react-hook-form';
-import debounce from 'lodash.debounce';
-import throttle from 'lodash.throttle';
+import {useForm, Controller} from 'react-hook-form';
 
 import {Button, Row, Col, Modal, Alert, Form, Spinner} from 'react-bootstrap';
-
-import useWindowDimensions from '../helpers/useWindowDimensions';
-
-import ViewMarker from './ViewMarker';
 
 import {errorNewUnit} from '../redux/units.js';
 import {sagaNewUnit, sagaGetUnits} from '../redux/saga/units.js';
 
 const containerStyle = {
-	width: '400px',
+	//width: '400px',
 	height: '400px'
 };
 
@@ -24,78 +18,40 @@ const center = {
 	lng: 30.52
 };
 
-function Maps() {
-	const {height, width} = useWindowDimensions();
-
-	let newWidth = width - 250;
-	let newHeight = height -50;
-
-	const refMap = useRef(null);
-
+export default function TopBar() {
 	const dispatch = useDispatch();
 
-	const refNewMarker = useRef(null);
-
 	const [modal, setModal] = useState(false);
-
-	const {register, handleSubmit, watch, formState: {errors}} = useForm({});
-
-	const units = useSelector(state => state.units.units);
+	const [marker, setMarker] = useState(null);
 
 	const newUnitError = useSelector(state => state.units.newUnitError);
 	const newUnitLoading = useSelector(state => state.units.newUnitLoading);
 	const newUnit = useSelector(state => state.units.newUnit);
 
-	useEffect(() => {
+	const {register, handleSubmit, reset, control, formState: {errors}} = useForm({});
+
+	const refNewMarker = useRef(null);
+
+	useLayoutEffect(() => {
 		if(newUnit && modal) {
 			setModal(false);
+			dispatch(errorNewUnit(false));
+			refNewMarker.current = null;
+			reset();
 		}
 	}, [newUnit]);
 
-	const fn = useCallback(throttle(() => {
-		let bounds = refMap.current.getBounds();
-		// add debaunce
-		dispatch(sagaGetUnits({
-			NELat: bounds.getNorthEast().lat(),
-			NELng: bounds.getNorthEast().lng(),
-			SWLat: bounds.getSouthWest().lat(),
-			SWLng: bounds.getSouthWest().lng()
-		}));
-	}, 1000), []);
-
-	const [viewMarker, setViewMarker] = useState(null);
-
 	return (<>
-		<LoadScript style={{width: newWidth, height: newHeight}} googleMapsApiKey="AIzaSyC31BIBtpm5P2dZnkhBOWEJLjY5sQL0DoE">
-			<GoogleMap mapContainerStyle={{width: newWidth, height: newHeight}}
-				options={{disableDoubleClickZoom: true}}
-				center={center}
-				zoom={11}
-				onLoad={(map) => {
-					refMap.current = map;
-					console.log(map);
-				}}
-				onBoundsChanged={fn}
-				onUnmount={() => {refMap.current = null;}}
-				onDblClick={(e) => {
-					setModal(true);
-					refNewMarker.current = {lat: e.latLng.lat(), lng: e.latLng.lng()};
-				}}
-				>
-				{units.map((entry) => {
-					return <Marker 	key={entry.id}
-									position={{lat: entry.lat, lng: entry.lng}}
-					 				onClick={(e) => {
-										setViewMarker(entry);
-										console.log({lat: e.latLng.lat(), lng: e.latLng.lng()})
-									}}/>
-				})}
-			</GoogleMap>
-		</LoadScript>
-		{viewMarker?<ViewMarker onHide={() => {setViewMarker(null)}} markerEntry={viewMarker} />:null}
+		<Row style={{height: 50}} className="justify-content-end align-items-center">
+			<Col sm="auto">
+				<Button variant="success" disabled={newUnitLoading} onClick={() => {setModal(true);}}>New Content</Button>
+			</Col>
+		</Row>
 		<Modal show={modal} onHide={() => {
 			setModal(false);
 			dispatch(errorNewUnit(false));
+			refNewMarker.current = null;
+			reset();
 		}} animation={false} centered size="lg">
 			<Modal.Header closeButton>
 				<Modal.Title>Add Marker to Google Maps</Modal.Title>
@@ -145,6 +101,30 @@ function Maps() {
 									</Form.Control.Feedback>
 								</Col>
 							</Form.Group>
+							<Form.Group as={Row} className="mb-3" controlId="formLatLng">
+								<Form.Label column sm="3">Maps(dbl-click)</Form.Label>
+								<Col sm="9">
+									<Controller name="group"
+												control={control}
+												isInvalid={!!errors.latLng}
+												render={({ field: {onChange, onBlur, value, ref}, fieldState: {error} }) => {
+													return <GoogleMap mapContainerStyle={containerStyle}
+														options={{disableDoubleClickZoom: true}}
+														center={center}
+														zoom={11}
+														onDblClick={(e) => {
+															refNewMarker.current = {lat: e.latLng.lat(), lng: e.latLng.lng()};
+															setMarker(refNewMarker.current);
+														}}
+														>
+														{(marker && refNewMarker.current)?<Marker position={{lat: marker.lat, lng: marker.lng}} />:null}
+													</GoogleMap>
+												}} />
+									<Form.Control.Feedback type="invalid">
+										{errors.latLng?.message}
+									</Form.Control.Feedback>
+								</Col>
+							</Form.Group>
 						</Form>
 					</Col>
 				</Row>:null}
@@ -153,11 +133,11 @@ function Maps() {
 				<Button variant="secondary" onClick={() => {
 					setModal(false);
 					dispatch(errorNewUnit(false));
+					refNewMarker.current = null;
+					reset();
 				}} >Close</Button>
-				<Button variant="success" type="submit" form="hook-modal-form" disabled={newUnitLoading}>Add to Map</Button>
+				<Button variant="success" type="submit" form="hook-modal-form" disabled={newUnitLoading}>Create Content</Button>
 			</Modal.Footer>
 		</Modal>
 	</>);
 }
-
-export default React.memo(Maps)
