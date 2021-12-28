@@ -65,7 +65,7 @@ function Maps() {
 	const [viewMarker, setViewMarker] = useState(null);
 
 	return (<>
-		<LoadScript style={{width: newWidth, height}} googleMapsApiKey="XXX">
+		<LoadScript style={{width: newWidth, height}} googleMapsApiKey="AIzaSyC31BIBtpm5P2dZnkhBOWEJLjY5sQL0DoE">
 			<GoogleMap mapContainerStyle={{width: newWidth, height}}
 				options={{disableDoubleClickZoom: true}}
 				center={center}
